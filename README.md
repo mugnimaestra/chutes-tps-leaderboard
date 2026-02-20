@@ -4,7 +4,7 @@ A real-time dashboard showing tokens/second (TPS) benchmarks for all LLM models 
 
 ## 🔗 Live Demo
 
-Visit the live site: [GitHub Pages link will be added after deployment]
+Visit the live site: **[mugnimaestra.github.io/chutes-tps-leaderboard](https://mugnimaestra.github.io/chutes-tps-leaderboard/)**
 
 ## Features
 
