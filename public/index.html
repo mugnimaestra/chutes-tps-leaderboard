@@ -1,0 +1,1034 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LLM Speed Index — Chutes TPS Leaderboard</title>
+    <meta
+      name="description"
+      content="Real-time tokens/second benchmarks for LLM models on Chutes.ai, sorted by fastest inference speed."
+    />
+    <meta
+      property="og:title"
+      content="LLM Speed Index — Chutes TPS Leaderboard"
+    />
+    <meta
+      property="og:description"
+      content="Real-time tokens/second benchmarks for LLM models on Chutes.ai, sorted by fastest inference speed."
+    />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:image"
+      content="https://mugnimaestra.github.io/chutes-tps-leaderboard/og-image.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="LLM Speed Index — Chutes TPS Leaderboard"
+    />
+    <meta
+      name="twitter:description"
+      content="Real-time tokens/second benchmarks for LLM models on Chutes.ai"
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700;800&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ── Custom Properties ── */
+      :root {
+        --bg: #000000;
+        --accent: #00f3ff;
+        --accent-rgb: 0, 243, 255;
+        --purple: #a855f7;
+        --purple-rgb: 168, 85, 247;
+        --glass-bg: rgba(255, 255, 255, 0.03);
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --glass-hover-border: rgba(255, 255, 255, 0.14);
+        --text-primary: #ffffff;
+        --text-secondary: #a1a1aa;
+        --text-muted: #71717a;
+        --gold: #fbbf24;
+        --silver: #d1d5db;
+        --bronze: #d97706;
+        --font-display: "Chakra Petch", sans-serif;
+        --font-body: "Space Grotesk", sans-serif;
+        --font-mono: "JetBrains Mono", monospace;
+        --grid-size: 60px;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --radius-pill: 999px;
+        --nav-height: 56px;
+        --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+
+      /* ── Reset ── */
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      body {
+        font-family: var(--font-body);
+        background: var(--bg);
+        color: var(--text-primary);
+        min-height: 100vh;
+        overflow-x: hidden;
+        /* Tech grid */
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        background-size: var(--grid-size) var(--grid-size);
+      }
+
+      /* ── Film Grain Overlay ── */
+      .grain {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.03;
+        pointer-events: none;
+        z-index: 9999;
+      }
+
+      /* ── Scanlines Overlay ── */
+      .scanlines {
+        position: fixed;
+        inset: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.03) 2px,
+          rgba(0, 0, 0, 0.03) 4px
+        );
+        pointer-events: none;
+        z-index: 9998;
+      }
+
+      /* ── Navbar ── */
+      .navbar {
+        position: fixed;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        width: min(92vw, 720px);
+      }
+      .navbar-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        height: var(--nav-height);
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-pill);
+      }
+      .navbar-brand {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+      }
+      .navbar-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #22c55e;
+        box-shadow:
+          0 0 6px #22c55e,
+          0 0 12px rgba(34, 197, 94, 0.4);
+        animation: pulse-dot 2s ease-in-out infinite;
+      }
+      .status-text {
+        color: #22c55e;
+      }
+      .navbar-sep {
+        color: rgba(255, 255, 255, 0.12);
+      }
+      .last-updated {
+        color: var(--text-muted);
+      }
+      @keyframes pulse-dot {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+
+      /* ── Hero Section ── */
+      .hero {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: calc(var(--nav-height) + 40px) 24px 60px;
+        text-align: center;
+      }
+      .hero-content {
+        max-width: 900px;
+        animation: fade-up 0.8s ease-out both;
+      }
+      .hero-title {
+        font-family: var(--font-display);
+        font-size: clamp(2.5rem, 8vw, 5rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        text-transform: uppercase;
+        line-height: 1.05;
+        color: var(--text-primary);
+        text-shadow:
+          0 0 40px rgba(var(--accent-rgb), 0.3),
+          0 0 80px rgba(var(--accent-rgb), 0.15),
+          0 0 120px rgba(var(--accent-rgb), 0.08);
+      }
+      .hero-subtitle {
+        margin-top: 16px;
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+        letter-spacing: 0.01em;
+      }
+
+      /* ── Stat Cards Row ── */
+      .stat-cards {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        margin-top: 48px;
+        flex-wrap: wrap;
+      }
+      .stat-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 24px 36px;
+        min-width: 160px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        transition:
+          border-color 0.3s ease,
+          box-shadow 0.3s ease;
+      }
+      .stat-card:hover {
+        border-color: var(--glass-hover-border);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.04),
+          0 0 30px rgba(var(--accent-rgb), 0.06);
+      }
+      .stat-label {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 400;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+      }
+      .stat-value {
+        font-family: var(--font-mono);
+        font-size: 2rem;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-primary);
+      }
+      .stat-value--peak {
+        color: var(--accent);
+        text-shadow: 0 0 20px rgba(var(--accent-rgb), 0.4);
+      }
+
+      /* ── Controls Bar ── */
+      .controls {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        padding: 0 24px;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--glass-border);
+      }
+      .controls-inner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 14px 0;
+        flex-wrap: wrap;
+      }
+      .btn-fetch {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 24px;
+        background: rgba(var(--accent-rgb), 0.1);
+        color: var(--accent);
+        border: 1px solid rgba(var(--accent-rgb), 0.3);
+        border-radius: var(--radius-pill);
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        animation: glow-pulse 3s ease-in-out infinite;
+        white-space: nowrap;
+      }
+      .btn-fetch:hover {
+        background: rgba(var(--accent-rgb), 0.18);
+        border-color: rgba(var(--accent-rgb), 0.5);
+        box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.2);
+      }
+      .btn-fetch:active {
+        transform: scale(0.97);
+      }
+      .btn-fetch-icon {
+        font-size: 1rem;
+      }
+      @keyframes glow-pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.1);
+        }
+        50% {
+          box-shadow:
+            0 0 20px rgba(var(--accent-rgb), 0.25),
+            0 0 40px rgba(var(--accent-rgb), 0.1);
+        }
+      }
+      .controls-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-left: auto;
+        flex-wrap: wrap;
+      }
+      .search-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .search-icon {
+        position: absolute;
+        left: 14px;
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+      .search-input {
+        padding: 10px 14px 10px 40px;
+        width: 220px;
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-pill);
+        color: var(--text-primary);
+        font-family: var(--font-body);
+        font-size: 0.85rem;
+        outline: none;
+        transition:
+          border-color 0.3s ease,
+          box-shadow 0.3s ease;
+      }
+      .search-input::placeholder {
+        color: var(--text-muted);
+      }
+      .search-input:focus {
+        border-color: rgba(var(--accent-rgb), 0.4);
+        box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.08);
+      }
+      .sort-select {
+        padding: 10px 16px;
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-pill);
+        color: var(--text-secondary);
+        font-family: var(--font-body);
+        font-size: 0.85rem;
+        cursor: pointer;
+        outline: none;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2371717a' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        padding-right: 36px;
+        transition: border-color 0.3s ease;
+      }
+      .sort-select option {
+        background: #111;
+        color: var(--text-primary);
+      }
+      .sort-select:focus {
+        border-color: rgba(var(--accent-rgb), 0.4);
+      }
+      .progress-bar {
+        width: 100%;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.04);
+        overflow: hidden;
+        display: none;
+      }
+      .progress-bar.active {
+        display: block;
+      }
+      .progress-bar-fill {
+        height: 100%;
+        width: 30%;
+        background: linear-gradient(90deg, var(--accent), var(--purple));
+        border-radius: 2px;
+        animation: progress-slide 1.5s ease-in-out infinite;
+      }
+      @keyframes progress-slide {
+        0% {
+          transform: translateX(-100%);
+          width: 30%;
+        }
+        50% {
+          width: 60%;
+        }
+        100% {
+          transform: translateX(400%);
+          width: 30%;
+        }
+      }
+
+      /* ── Grid Section ── */
+      .grid-section {
+        padding: 48px 24px 80px;
+        max-width: 1280px;
+        margin: 0 auto;
+      }
+      .model-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      /* ── Model Card ── */
+      .model-card {
+        position: relative;
+        padding: 24px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        transition:
+          transform 0.35s var(--ease-spring),
+          border-color 0.3s ease,
+          box-shadow 0.3s ease;
+        animation: fade-up 0.5s ease-out both;
+      }
+      .model-card:hover {
+        transform: scale(1.02);
+        border-color: var(--glass-hover-border);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.04),
+          0 8px 40px rgba(var(--accent-rgb), 0.07);
+      }
+      /* Staggered entrance */
+      .model-card:nth-child(1) {
+        animation-delay: 0s;
+      }
+      .model-card:nth-child(2) {
+        animation-delay: 0.04s;
+      }
+      .model-card:nth-child(3) {
+        animation-delay: 0.08s;
+      }
+      .model-card:nth-child(4) {
+        animation-delay: 0.12s;
+      }
+      .model-card:nth-child(5) {
+        animation-delay: 0.16s;
+      }
+      .model-card:nth-child(6) {
+        animation-delay: 0.2s;
+      }
+      .model-card:nth-child(7) {
+        animation-delay: 0.24s;
+      }
+      .model-card:nth-child(8) {
+        animation-delay: 0.28s;
+      }
+      .model-card:nth-child(9) {
+        animation-delay: 0.32s;
+      }
+      .model-card:nth-child(10) {
+        animation-delay: 0.36s;
+      }
+      .model-card:nth-child(11) {
+        animation-delay: 0.4s;
+      }
+      .model-card:nth-child(12) {
+        animation-delay: 0.44s;
+      }
+
+      .card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .card-model-name {
+        font-family: var(--font-body);
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        min-width: 0;
+      }
+      .rank-badge {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 500;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-muted);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .rank-badge--gold {
+        background: rgba(251, 191, 36, 0.12);
+        color: var(--gold);
+        border-color: rgba(251, 191, 36, 0.3);
+        box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
+      }
+      .rank-badge--silver {
+        background: rgba(209, 213, 219, 0.1);
+        color: var(--silver);
+        border-color: rgba(209, 213, 219, 0.25);
+        box-shadow: 0 0 10px rgba(209, 213, 219, 0.1);
+      }
+      .rank-badge--bronze {
+        background: rgba(217, 119, 6, 0.12);
+        color: var(--bronze);
+        border-color: rgba(217, 119, 6, 0.3);
+        box-shadow: 0 0 10px rgba(217, 119, 6, 0.12);
+      }
+
+      .card-tps {
+        font-family: var(--font-mono);
+        font-size: 2.2rem;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        color: var(--accent);
+        text-shadow: 0 0 20px rgba(var(--accent-rgb), 0.35);
+        line-height: 1.1;
+        margin-bottom: 4px;
+      }
+      .card-tps-label {
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+        margin-bottom: 20px;
+      }
+
+      .card-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .card-stat-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .card-stat-label {
+        font-family: var(--font-mono);
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+      }
+      .card-stat-value {
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-secondary);
+      }
+
+      /* ── Skeleton / Shimmer ── */
+      .skeleton-card {
+        pointer-events: none;
+      }
+      .skel {
+        border-radius: var(--radius-sm);
+        background: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.04) 25%,
+          rgba(255, 255, 255, 0.08) 50%,
+          rgba(255, 255, 255, 0.04) 75%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 1.8s ease-in-out infinite;
+      }
+      .skel-rank {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        margin-bottom: 12px;
+      }
+      .skel-title {
+        width: 70%;
+        height: 16px;
+        margin-bottom: 16px;
+      }
+      .skel-tps {
+        width: 50%;
+        height: 36px;
+        margin-bottom: 20px;
+      }
+      .skel-row {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+      .skel-stat {
+        flex: 1;
+        height: 28px;
+      }
+      @keyframes shimmer {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+
+      /* ── Footer ── */
+      .footer {
+        padding: 40px 24px;
+        text-align: center;
+        border-top: 1px solid var(--glass-border);
+      }
+      .footer p {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        letter-spacing: 0.03em;
+      }
+      .footer a {
+        color: var(--accent);
+        text-decoration: none;
+        transition: opacity 0.2s ease;
+      }
+      .footer a:hover {
+        opacity: 0.7;
+      }
+
+      /* ── Animations ── */
+      @keyframes fade-up {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ── Responsive ── */
+      @media (min-width: 768px) {
+        .model-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .controls-inner {
+          flex-wrap: nowrap;
+        }
+      }
+      @media (min-width: 1024px) {
+        .model-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+
+      /* ── Reduced Motion ── */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+        .model-card:hover {
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Film grain overlay -->
+    <svg class="grain" aria-hidden="true">
+      <filter id="grain-filter">
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.65"
+          numOctaves="3"
+          stitchTiles="stitch"
+        />
+      </filter>
+      <rect width="100%" height="100%" filter="url(#grain-filter)" />
+    </svg>
+
+    <!-- Scanlines overlay -->
+    <div class="scanlines" aria-hidden="true"></div>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar">
+      <div class="navbar-inner">
+        <div class="navbar-brand">⚡ CHUTES TPS LEADERBOARD</div>
+        <div class="navbar-status">
+          <span class="last-updated" id="lastUpdated">--:--:--</span>
+          <span class="navbar-sep">|</span>
+          <span style="color: var(--text-muted)">Updates every 10m</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero section -->
+    <section class="hero">
+      <div class="hero-content">
+        <h1 class="hero-title">LLM SPEED INDEX</h1>
+        <p class="hero-subtitle">
+          Real-time tokens/second benchmarks from Chutes.ai
+        </p>
+
+        <div class="stat-cards">
+          <div class="stat-card">
+            <span class="stat-label">Total Models</span>
+            <span class="stat-value" id="statTotalModels">--</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Avg TPS</span>
+            <span class="stat-value" id="statAvgTps">--</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Peak TPS</span>
+            <span class="stat-value stat-value--peak" id="statPeakTps">--</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Controls bar -->
+    <section class="controls">
+      <div class="controls-inner">
+        <button class="btn-fetch" id="btnFetch">
+          <span class="btn-fetch-icon">⚡</span>
+          Refresh
+        </button>
+        <div class="controls-right">
+          <div class="search-wrapper">
+            <svg
+              class="search-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              class="search-input"
+              id="searchInput"
+              placeholder="Search models..."
+            />
+          </div>
+          <select class="sort-select" id="sortSelect">
+            <option value="tps">Sort by TPS</option>
+            <option value="name">Sort by Name</option>
+            <option value="requests">Sort by Requests</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Model cards grid -->
+    <section class="grid-section">
+      <div class="model-grid" id="modelGrid">
+        <div class="model-card skeleton-card">
+          <div class="skel skel-rank"></div>
+          <div class="skel skel-title"></div>
+          <div class="skel skel-tps"></div>
+          <div class="skel-row">
+            <div class="skel skel-stat"></div>
+            <div class="skel skel-stat"></div>
+          </div>
+          <div class="skel-row">
+            <div class="skel skel-stat"></div>
+            <div class="skel skel-stat"></div>
+          </div>
+        </div>
+        <div class="model-card skeleton-card">
+          <div class="skel skel-rank"></div>
+          <div class="skel skel-title"></div>
+          <div class="skel skel-tps"></div>
+          <div class="skel-row">
+            <div class="skel skel-stat"></div>
+            <div class="skel skel-stat"></div>
+          </div>
+          <div class="skel-row">
+            <div class="skel skel-stat"></div>
+            <div class="skel skel-stat"></div>
+          </div>
+        </div>
+        <div class="model-card skeleton-card">
+          <div class="skel skel-rank"></div>
+          <div class="skel skel-title"></div>
+          <div class="skel skel-tps"></div>
+          <div class="skel-row">
+            <div class="skel skel-stat"></div>
+            <div class="skel skel-stat"></div>
+          </div>
+          <div class="skel-row">
+            <div class="skel skel-stat"></div>
+            <div class="skel skel-stat"></div>
+          </div>
+        </div>
+        <div class="model-card skeleton-card">
+          <div class="skel skel-rank"></div>
+          <div class="skel skel-title"></div>
+          <div class="skel skel-tps"></div>
+          <div class="skel-row">
+            <div class="skel skel-stat"></div>
+            <div class="skel skel-stat"></div>
+          </div>
+          <div class="skel-row">
+            <div class="skel skel-stat"></div>
+            <div class="skel skel-stat"></div>
+          </div>
+        </div>
+        <div class="model-card skeleton-card">
+          <div class="skel skel-rank"></div>
+          <div class="skel skel-title"></div>
+          <div class="skel skel-tps"></div>
+          <div class="skel-row">
+            <div class="skel skel-stat"></div>
+            <div class="skel skel-stat"></div>
+          </div>
+          <div class="skel-row">
+            <div class="skel skel-stat"></div>
+            <div class="skel skel-stat"></div>
+          </div>
+        </div>
+        <div class="model-card skeleton-card">
+          <div class="skel skel-rank"></div>
+          <div class="skel skel-title"></div>
+          <div class="skel skel-tps"></div>
+          <div class="skel-row">
+            <div class="skel skel-stat"></div>
+            <div class="skel skel-stat"></div>
+          </div>
+          <div class="skel-row">
+            <div class="skel skel-stat"></div>
+            <div class="skel skel-stat"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        Data sourced from
+        <a href="https://chutes.ai" target="_blank" rel="noopener">chutes.ai</a>
+        &bull; Built with ❤️
+      </p>
+    </footer>
+
+    <script>
+      // State
+      let models = [];
+
+      // UI Helpers
+      function updateHeroStats() {
+        if (models.length === 0) return;
+        const tps = models.map((m) => m.summary.latest.tps);
+        const avg = tps.reduce((a, b) => a + b, 0) / tps.length;
+        document.getElementById("statTotalModels").textContent = models.length;
+        document.getElementById("statAvgTps").textContent = avg.toFixed(1);
+        document.getElementById("statPeakTps").textContent = Math.max(
+          ...tps,
+        ).toFixed(1);
+      }
+
+      function renderGrid() {
+        const grid = document.getElementById("modelGrid");
+        const query = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        const sort = document.getElementById("sortSelect").value;
+
+        let filtered = models.slice();
+        if (query)
+          filtered = filtered.filter((m) =>
+            m.name.toLowerCase().includes(query),
+          );
+
+        if (sort === "tps")
+          filtered.sort(
+            (a, b) =>
+              (b.summary?.latest?.tps || 0) - (a.summary?.latest?.tps || 0),
+          );
+        if (sort === "name")
+          filtered.sort((a, b) => a.name.localeCompare(b.name));
+        if (sort === "requests")
+          filtered.sort(
+            (a, b) =>
+              (b.summary?.latest?.requests || 0) -
+              (a.summary?.latest?.requests || 0),
+          );
+
+        grid.innerHTML = filtered
+          .map((m, i) => {
+            const rank = i + 1;
+            const tps = m.summary?.latest?.tps || 0;
+            const ttft = m.summary?.latest?.ttft || 0;
+            const avg7 = m.summary?.avg_7d || 0;
+            const avg30 = m.summary?.avg_30d || 0;
+            const requests = m.summary?.latest?.requests || 0;
+            const rc =
+              rank === 1
+                ? "rank-badge--gold"
+                : rank === 2
+                  ? "rank-badge--silver"
+                  : rank === 3
+                    ? "rank-badge--bronze"
+                    : "";
+            return `<div class="model-card" style="animation-delay:${Math.min(i * 0.04, 0.5)}s">
+            <div class="card-header">
+              <span class="card-model-name" title="${m.name}">${m.name}</span>
+              <span class="rank-badge ${rc}">#${rank}</span>
+            </div>
+            <div class="card-tps">${tps.toFixed(1)}</div>
+            <div class="card-tps-label">TOKENS/SEC</div>
+            <div class="card-stats">
+              <div class="card-stat-item">
+                <span class="card-stat-label">TTFT</span>
+                <span class="card-stat-value">${ttft.toFixed(2)}s</span>
+              </div>
+              <div class="card-stat-item">
+                <span class="card-stat-label">7D AVG</span>
+                <span class="card-stat-value">${avg7.toFixed(1)}</span>
+              </div>
+              <div class="card-stat-item">
+                <span class="card-stat-label">REQUESTS</span>
+                <span class="card-stat-value">${requests.toLocaleString()}</span>
+              </div>
+              <div class="card-stat-item">
+                <span class="card-stat-label">30D AVG</span>
+                <span class="card-stat-value">${avg30.toFixed(1)}</span>
+              </div>
+            </div>
+          </div>`;
+          })
+          .join("");
+      }
+
+      // Data Loading
+      async function loadData() {
+        try {
+          const res = await fetch("/api/models");
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const data = await res.json();
+          models = (data.models || []).map((m) => ({
+            chute_id: m.chute_id,
+            name: m.name,
+            summary: {
+              latest: {
+                tps: m.latest_tps || 0,
+                ttft: m.latest_ttft || 0,
+                requests: m.latest_requests || 0,
+              },
+              avg_7d: m.avg_7d || 0,
+              avg_30d: m.avg_30d || 0,
+              peak_tps: m.peak_tps || 0,
+            },
+          }));
+          updateHeroStats();
+          if (data.scraped_at) {
+            document.getElementById("lastUpdated").textContent = new Date(
+              data.scraped_at,
+            ).toLocaleTimeString();
+          }
+          renderGrid();
+        } catch (e) {
+          document.getElementById("modelGrid").innerHTML =
+            '<p style="grid-column:1/-1;text-align:center;color:var(--text-muted);">Loading data... The worker updates every 10 minutes.</p>';
+          setTimeout(loadData, 10000);
+        }
+      }
+
+      // Event Listeners
+      document.getElementById("btnFetch").addEventListener("click", loadData);
+      document
+        .getElementById("searchInput")
+        .addEventListener("input", renderGrid);
+      document
+        .getElementById("sortSelect")
+        .addEventListener("change", renderGrid);
+
+      // Init
+      loadData();
+      setInterval(loadData, 300000); // Refresh every 5 minutes
+    </script>
+  </body>
+</html>
