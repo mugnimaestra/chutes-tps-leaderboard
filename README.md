@@ -2,39 +2,54 @@
 
 A real-time dashboard showing tokens/second (TPS) benchmarks for all LLM models hosted on [Chutes.ai](https://chutes.ai), sorted by fastest inference speed.
 
-## 🔗 Live Demo
+## 🔗 Live
 
-Visit the live site: **[mugnimaestra.github.io/chutes-tps-leaderboard](https://mugnimaestra.github.io/chutes-tps-leaderboard/)**
+- **Cloudflare Workers**: [chutes-tps-leaderboard.mugnimaestra2.workers.dev](https://chutes-tps-leaderboard.mugnimaestra2.workers.dev/)
+- **GitHub Pages** (legacy client-side version): [mugnimaestra.github.io/chutes-tps-leaderboard](https://mugnimaestra.github.io/chutes-tps-leaderboard/)
 
 ## Features
 
-- **Real-time data** — Fetches the latest TPS data directly from Chutes.ai
-- **56+ LLM models** — All vLLM-based models in the Chutes catalogue
-- **Progressive loading** — Models appear as their stats are fetched
+- **Real-time data** — Scrapes TPS stats from Chutes.ai every 10 minutes via cron
+- **All LLM models** — Full catalogue from the OpenAI-compatible `/v1/models` API
+- **Cloudflare Worker backend** — D1 SQLite database, serverless, fast globally
 - **Search & sort** — Filter by name, sort by TPS/name/requests
-- **Local caching** — Results cached for 1 hour to avoid repeated fetches
 - **Premium dark theme** — Mission Control aesthetic with glassmorphic UI
-- **Zero dependencies** — Pure HTML/CSS/JS, no build step required
 
 ## How It Works
 
-1. Fetches the Chutes.ai catalogue page via CORS proxy
-2. Parses server-side rendered HTML to extract LLM model data
-3. Identifies models using `standard_template:"vllm"` classification
-4. Fetches individual stats pages for each model (concurrency: 3)
-5. Displays results sorted by highest TPS
+1. Cron trigger (every 10 minutes) calls the scraper
+2. Fetches all models from `https://llm.chutes.ai/v1/models` JSON API
+3. Fetches one stats page from Chutes.ai (contains data for all models)
+4. Parses TPS/TTFT stats with regex, computes averages and peaks
+5. Upserts all models into D1 database
+6. Frontend fetches from `/api/models` and renders the leaderboard
 
 ## Tech
 
-- Vanilla HTML/CSS/JS (no frameworks)
-- CORS proxy fallback chain (corsproxy.io → allorigins)
-- CSS glassmorphism, film grain, scanlines, tech grid
-- Google Fonts: Chakra Petch, Space Grotesk, JetBrains Mono
-- LocalStorage caching
+- **Backend**: Cloudflare Worker (TypeScript) + D1 SQLite
+- **Frontend**: Static HTML/CSS/JS served by Workers Assets
+- **Scraping**: OpenAI-compatible JSON API + HTML regex for stats
+- **Styling**: CSS glassmorphism, film grain, scanlines, tech grid
+- **Fonts**: Chakra Petch, Space Grotesk, JetBrains Mono
 
 ## Local Development
 
-Just open `index.html` in a browser. No server or build step needed.
+```bash
+# Install dependencies
+npm install
+
+# Apply D1 schema locally
+npx wrangler d1 execute chutes-leaderboard --local --file=schema.sql
+
+# Run local dev server
+npm run dev
+
+# Trigger a manual scrape
+curl -X POST http://localhost:8787/api/scrape
+
+# Deploy to Cloudflare Workers
+npm run deploy
+```
 
 ## License
 

@@ -5,16 +5,28 @@ export interface Env {
   DB: D1Database;
 }
 
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+const ALLOWED_ORIGINS = [
+  "https://mugnimaestra.github.io",
+  "http://localhost:8787",
+  "http://127.0.0.1:8787",
+];
 
-function json(data: unknown, status = 200) {
+function corsHeaders(request: Request) {
+  const origin = request.headers.get("Origin") || "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin)
+    ? origin
+    : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+}
+
+function json(data: unknown, request: Request, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json", ...cors },
+    headers: { "Content-Type": "application/json", ...corsHeaders(request) },
   });
 }
 
@@ -22,12 +34,12 @@ export default {
   async fetch(
     request: Request,
     env: Env,
-    ctx: ExecutionContext,
+    _ctx: ExecutionContext,
   ): Promise<Response> {
     const url = new URL(request.url);
 
     if (request.method === "OPTIONS" && url.pathname.startsWith("/api/"))
-      return new Response(null, { status: 204, headers: cors });
+      return new Response(null, { status: 204, headers: corsHeaders(request) });
 
     if (url.pathname === "/api/models") {
       const models = await allModels(env.DB);
@@ -35,16 +47,16 @@ export default {
         models,
         total: models.length,
         scraped_at: models[0]?.scraped_at ?? null,
-      });
+      }, request);
     }
 
     if (url.pathname === "/api/scrape" && request.method === "POST") {
       try {
         const result = await scrapeBatch(env.DB);
-        return json(result);
+        return json(result, request);
       } catch (e) {
         console.error("Manual scrape failed:", e);
-        return json({ error: String(e) }, 500);
+        return json({ error: String(e) }, request, 500);
       }
     }
 
@@ -57,10 +69,10 @@ export default {
           status: "ok",
           models_count: row?.count ?? 0,
           last_scraped_at: row?.last_scraped_at ?? null,
-        });
+        }, request);
       } catch (e) {
         console.error("Health check failed:", e);
-        return json({ status: "error", error: String(e) }, 500);
+        return json({ status: "error", error: String(e) }, request, 500);
       }
     }
 
